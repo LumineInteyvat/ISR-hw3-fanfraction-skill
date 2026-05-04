@@ -1,0 +1,28 @@
+conflict_types:
+  personality_conflict:
+    label: 人格冲突
+    assertion_types: [personality_trait, value]
+    severity: medium
+  relationship_conflict:
+    label: 关系冲突
+    assertion_types: [relationship]
+    severity: high
+  timeline_conflict:
+    label: 时间线冲突
+    assertion_types: [event_memory]
+    severity: high
+  worldview_conflict:
+    label: 世界观冲突
+    assertion_types: [world_rule, scene_constraint]
+    severity: high
+  motivation_conflict:
+    label: 动机冲突
+    assertion_types: [value, event_memory, personality_trait]
+    severity: medium
+severity_rules:
+  high:
+    score: 0.9
+  medium:
+    score: 0.6
+  low:
+    score: 0.3

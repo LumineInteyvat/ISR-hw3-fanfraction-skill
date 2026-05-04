@@ -1,0 +1,22 @@
+assertion_types:
+  personality_trait:
+    label: 性格特质
+    fields: [subject, claim, confidence, source_trace]
+  value:
+    label: 价值观
+    fields: [subject, claim, confidence, source_trace]
+  relationship:
+    label: 关系
+    fields: [subject, object, claim, confidence, source_trace]
+  event_memory:
+    label: 事件记忆
+    fields: [subject, event, claim, confidence, source_trace]
+  language_style:
+    label: 语言风格
+    fields: [subject, claim, confidence, source_trace]
+  world_rule:
+    label: 世界规则
+    fields: [claim, confidence, source_trace]
+  scene_constraint:
+    label: 场景限制
+    fields: [claim, confidence, source_trace]

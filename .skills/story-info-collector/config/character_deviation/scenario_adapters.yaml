@@ -1,0 +1,31 @@
+scenario_adapters:
+  canon_default:
+    behavior_weight: 1.0
+    world_constraints: canon_default
+    relationship_pressure: canon_default
+    acceptable_ooc_threshold: 0.1
+  modern_au:
+    behavior_weight: 0.85
+    world_constraints: modernized_world_rules
+    relationship_pressure: social_context_shifted
+    acceptable_ooc_threshold: 0.25
+  postwar:
+    behavior_weight: 0.9
+    world_constraints: aftermath_constraints
+    relationship_pressure: trauma_and_recovery
+    acceptable_ooc_threshold: 0.2
+  if_line:
+    behavior_weight: 0.75
+    world_constraints: branch_timeline
+    relationship_pressure: altered_history
+    acceptable_ooc_threshold: 0.35
+  darkening:
+    behavior_weight: 0.65
+    world_constraints: canon_default
+    relationship_pressure: moral_stress_test
+    acceptable_ooc_threshold: 0.4
+  romance_line:
+    behavior_weight: 0.8
+    world_constraints: canon_default
+    relationship_pressure: intimacy_pressure
+    acceptable_ooc_threshold: 0.25

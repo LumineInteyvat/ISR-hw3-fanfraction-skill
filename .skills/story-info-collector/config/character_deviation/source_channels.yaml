@@ -1,0 +1,17 @@
+source_channels:
+  canon:
+    label: 正史
+    source_types: [canon, official_story]
+    credibility: 1.0
+  official_reference:
+    label: 官方参考
+    source_types: [official_reference, fandom]
+    credibility: 0.85
+  structured_fanon:
+    label: 粉丝结构化知识
+    source_types: [structured_fanon, wiki_notes]
+    credibility: 0.6
+  fan_discussion:
+    label: 粉丝讨论/同人文
+    source_types: [interpretive_fan_evidence, fan_discussion, fanfiction]
+    credibility: 0.4

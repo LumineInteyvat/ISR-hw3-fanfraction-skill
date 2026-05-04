@@ -1,0 +1,12 @@
+llm:
+  provider: deepseek
+  endpoint: https://api.deepseek.com/chat/completions
+  model: deepseek-chat
+  temperature: 0.1
+output_formats:
+  default: json
+  json:
+    character_card_version: v1
+    include_deviation_report: true
+    include_recommendations: true
+    reserved_extension_field: character_card_v2
