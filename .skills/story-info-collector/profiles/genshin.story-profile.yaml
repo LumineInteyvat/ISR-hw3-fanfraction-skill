@@ -1,0 +1,49 @@
+profile_name: genshin-default
+language: zh
+works:
+  - name: 原神
+    aliases: [原神, Genshin, Genshin Impact]
+    default_worlds: [提瓦特]
+    wiki_name: genshin-impact
+    obc_configuration_key: genshin_impact
+characters:
+  - name: 芙宁娜
+    work: 原神
+    aliases: [芙宁娜, Furina]
+    search_keywords:
+      zh: [芙宁娜, 审判, 创伤, 性格分析]
+      en: [Furina, trial, trauma, character analysis]
+  - name: 钟离
+    work: 原神
+    aliases: [钟离, Zhongli, Morax, 摩拉克斯, 岩王帝君]
+    search_keywords:
+      zh: [钟离, 契约, 磨损, 性格分析]
+      en: [Zhongli, Morax, contract, erosion, character analysis]
+  - name: 纳西妲
+    work: 原神
+    aliases: [纳西妲, Nahida, Kusanali, 小吉祥草王]
+    search_keywords:
+      zh: [纳西妲, 智慧, 梦境, 性格分析]
+      en: [Nahida, Kusanali, wisdom, dream, character analysis]
+scenes:
+  - name: 现代 AU
+    aliases: [现代 AU, 现代AU, modern AU]
+  - name: 审判创伤
+    aliases: [审判创伤, 审判, trial trauma]
+  - name: 契约创伤
+    aliases: [契约创伤, 契约, contract trauma]
+  - name: 角色心理
+    aliases: [角色心理, 心理, trauma, personality]
+information_needs:
+  - character_profile
+  - story_or_quest_context
+  - relationship_context
+  - forum_interpretation
+source_policy:
+  fandom_source_type: official_reference
+  reddit_source_type: interpretive_fan_evidence
+  obc_enabled: false
+default_routes:
+  - fandom
+optional_routes:
+  - reddit

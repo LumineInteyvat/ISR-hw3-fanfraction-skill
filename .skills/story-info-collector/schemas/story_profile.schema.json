@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["profile_name", "works", "characters", "scenes", "source_policy", "default_routes"],
+  "properties": {
+    "profile_name": {"type": "string"},
+    "language": {"type": "string"},
+    "works": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "aliases"],
+        "properties": {
+          "name": {"type": "string"},
+          "aliases": {"type": "array", "items": {"type": "string"}},
+          "default_worlds": {"type": "array", "items": {"type": "string"}},
+          "wiki_name": {"type": "string"},
+          "obc_configuration_key": {"type": "string"}
+        }
+      }
+    },
+    "characters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "work", "aliases"],
+        "properties": {
+          "name": {"type": "string"},
+          "work": {"type": "string"},
+          "aliases": {"type": "array", "items": {"type": "string"}},
+          "search_keywords": {"type": "object"}
+        }
+      }
+    },
+    "scenes": {"type": "array", "items": {"type": "object"}},
+    "information_needs": {"type": "array", "items": {"type": "string"}},
+    "source_policy": {"type": "object"},
+    "default_routes": {"type": "array", "items": {"type": "string"}},
+    "optional_routes": {"type": "array", "items": {"type": "string"}}
+  }
+}

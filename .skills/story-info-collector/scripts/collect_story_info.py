@@ -12,21 +12,16 @@ from adapters.crawlbase_reddit_adapter import collect_reddit
 from adapters.obc_spider_adapter import collect_obc
 from utils.cache import build_base_filename, is_cache_hit, stable_query_hash
 from utils.manifest import find_cached_entry, load_manifest, make_manifest_key, save_manifest, upsert_entry
+from utils.profile import find_character, find_scenes, find_work, keywords_for, load_story_profile, routes_for, source_type_for, worlds_for
 from utils.text_extract import build_source, chunk_document, extract_document, write_chunks, write_json, write_markdown, write_source
 
 
-def generate_keyword_plan(request: str, language: str = "zh") -> dict:
-    characters = []
-    works = []
-    if "芙宁娜" in request or "Furina" in request:
-        characters.append("芙宁娜")
-        works.append("原神")
-    if "原神" in request and "原神" not in works:
-        works.append("原神")
-    scenes = []
-    for keyword in ["现代 AU", "现代AU", "审判创伤", "角色心理", "恋爱线", "战后", "黑化"]:
-        if keyword in request:
-            scenes.append(keyword.replace("现代AU", "现代 AU"))
+def generate_keyword_plan(request: str, language: str = "zh", profile: dict | None = None, explicit_character: str | None = None, explicit_work: str | None = None, explicit_scene: str | None = None, include_reddit: bool = False, exclusions: list[str] | None = None) -> dict:
+    character = find_character(request, profile, explicit_character)
+    work = find_work(request, profile, character, explicit_work)
+    scenes = find_scenes(request, profile, explicit_scene)
+    characters = [character] if character else []
+    works = [work] if work else []
     questions = []
     if not characters:
         questions.append("你要写哪个角色？")
@@ -34,29 +29,28 @@ def generate_keyword_plan(request: str, language: str = "zh") -> dict:
         questions.append("这个角色来自哪个作品/世界观？")
     if not scenes:
         questions.append("你希望分析正史、AU、恋爱线、战后、黑化、任务后续，还是其它场景？")
+    search_keywords = keywords_for(character or "", work or "", scenes, profile, language)
+    source_routes = routes_for(profile, include_reddit) if characters and works else []
     return {
         "original_request": request,
         "detected_characters": characters,
         "detected_works": works,
-        "detected_worlds": ["提瓦特", "现代 AU"] if works else [],
+        "detected_worlds": worlds_for(work, profile),
         "detected_scenes": scenes,
-        "search_keywords": {
-            "zh": ["芙宁娜", "审判", "创伤", "现代 AU", "性格分析"] if characters else [],
-            "en": ["Furina", "trial", "trauma", "modern AU", "character analysis"] if characters else [],
-        },
-        "information_needs": ["character_profile", "voice_lines", "story_or_quest_context", "relationship_context", "forum_interpretation"],
-        "source_routes": ["fandom", "obc", "reddit"] if characters and works else [],
+        "search_keywords": search_keywords,
+        "information_needs": profile.get("information_needs", ["character_profile", "voice_lines", "story_or_quest_context", "relationship_context", "forum_interpretation"]) if profile else ["character_profile", "voice_lines", "story_or_quest_context", "relationship_context", "forum_interpretation"],
+        "source_routes": source_routes,
         "clarification_needed": bool(questions),
         "clarification_questions": questions,
         "classified_keywords": {
             "character": characters,
             "work": works,
-            "canon_context": ["审判", "剧情经历"] if characters else [],
+            "canon_context": [scene for scene in scenes if "任务" in scene or "审判" in scene or "契约" in scene],
             "relationship": ["人物关系"] if characters else [],
-            "personality": ["创伤", "性格分析", "角色心理"] if characters else [],
-            "worldbuilding": ["提瓦特", "枫丹", "现代 AU"] if works else [],
+            "personality": [keyword for keyword in [*scenes, "性格分析", "角色心理"] if characters],
+            "worldbuilding": worlds_for(work, profile),
             "forum_topics": ["character analysis", "lore discussion", "quest interpretation", "personality analysis"] if characters else [],
-            "exclusions": [],
+            "exclusions": exclusions or [],
         },
     }
 
@@ -93,11 +87,11 @@ def _raw_for_route(route: str, config: dict, character: str, work: str, language
     return collect_reddit(query, config.get("reddit", {}).get("subreddits", []), storage["raw_reddit"], config.get("reddit", {}).get("token_env", "CRAWLBASE_TOKEN"), dry_run, config.get("reddit", {}).get("sort", "relevance"), config.get("reddit", {}).get("max_posts_per_query", 20)), storage["raw_reddit"]
 
 
-def _context_for_route(route: str, character: str, work: str, language: str, query: str, query_hash: str, raw_path: str) -> dict:
+def _context_for_route(route: str, character: str, work: str, language: str, query: str, query_hash: str, raw_path: str, profile: dict | None = None) -> dict:
     mapping = {
-        "fandom": ("structured_fan_knowledge", "FandomScraper", "character-information"),
-        "obc": ("official_reference", "obcSpider / 米游社", "voice-lines"),
-        "reddit": ("interpretive_fan_evidence", "Crawlbase Reddit", "forum-analysis"),
+        "fandom": (source_type_for("fandom", profile), "FandomScraper", "character-information"),
+        "obc": (source_type_for("obc", profile), "obcSpider / 米游社", "voice-lines"),
+        "reddit": (source_type_for("reddit", profile), "Crawlbase Reddit", "forum-analysis"),
     }
     source_type, source_name, category = mapping[route]
     return {
@@ -115,10 +109,12 @@ def _context_for_route(route: str, character: str, work: str, language: str, que
     }
 
 
-def collect(request: str, config: dict, dry_run: bool = False, language_override: str | None = None, refresh: bool = False) -> int:
+def collect(request: str, config: dict, dry_run: bool = False, language_override: str | None = None, refresh: bool = False, profile_path: str | None = None, explicit_character: str | None = None, explicit_work: str | None = None, explicit_scene: str | None = None, include_reddit: bool = False, exclusions: list[str] | None = None) -> int:
     ensure_dirs(config)
     language = language_override or config.get("project", {}).get("default_language", "zh")
-    keyword_plan = generate_keyword_plan(request, language)
+    selected_profile_path = profile_path or config.get("project", {}).get("default_profile")
+    profile = load_story_profile(selected_profile_path) if selected_profile_path else None
+    keyword_plan = generate_keyword_plan(request, language, profile, explicit_character, explicit_work, explicit_scene, include_reddit, exclusions)
     if keyword_plan["clarification_needed"]:
         print("需要补充信息：")
         for question in keyword_plan["clarification_questions"]:
@@ -145,10 +141,10 @@ def collect(request: str, config: dict, dry_run: bool = False, language_override
             cached += 1
             continue
         raw, raw_dir = _raw_for_route(route, config, character, work, language, query, dry_run)
-        base = build_base_filename(work, character, _context_for_route(route, character, work, language, query, query_hash, "")["category"], route, query_hash)
+        base = build_base_filename(work, character, _context_for_route(route, character, work, language, query, query_hash, "", profile)["category"], route, query_hash)
         raw_path = str(Path(raw_dir) / f"{base}.json")
         write_json(raw, raw_path)
-        context = _context_for_route(route, character, work, language, query, query_hash, raw_path)
+        context = _context_for_route(route, character, work, language, query, query_hash, raw_path, profile)
         if raw.get("status") == "skipped":
             skipped.append(route)
             status = "skipped"
@@ -233,8 +229,14 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--language")
     parser.add_argument("--refresh", action="store_true")
+    parser.add_argument("--profile")
+    parser.add_argument("--character")
+    parser.add_argument("--work")
+    parser.add_argument("--scene")
+    parser.add_argument("--include-reddit", action="store_true")
+    parser.add_argument("--exclude", action="append", default=[])
     args = parser.parse_args()
-    raise SystemExit(collect(args.request, load_config(args.config), args.dry_run, args.language, args.refresh))
+    raise SystemExit(collect(args.request, load_config(args.config), args.dry_run, args.language, args.refresh, args.profile, args.character, args.work, args.scene, args.include_reddit, args.exclude))
 
 
 if __name__ == "__main__":

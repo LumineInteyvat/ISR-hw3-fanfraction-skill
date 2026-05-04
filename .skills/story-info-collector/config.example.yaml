@@ -2,6 +2,7 @@ project:
   default_language: zh
   allow_english_search: true
   docs_root: docs
+  default_profile: .skills/story-info-collector/profiles/genshin.story-profile.yaml
 
 cache:
   enabled: true
@@ -24,7 +25,7 @@ fandom:
     - story
 
 obc:
-  enabled: true
+  enabled: false
   default_lang: zh
   games:
     genshin:

@@ -14,7 +14,11 @@
 
 > 我想写一个关于芙宁娜在现代 AU 中重新面对审判创伤的故事。
 
-也可以补充角色、作品、语言和资料范围。
+也可以补充角色、作品、语言和资料范围。Claude Code 应优先通过 story profile 或 CLI 参数定制本次小说需求，而不是修改主脚本。
+
+## Story Profile 定制
+
+默认 profile 位于 `.skills/story-info-collector/profiles/genshin.story-profile.yaml`，用于配置作品、角色别名、场景关键词、信息需求、来源路由和 source_type。写作辅助时，如果用户换角色或换场景，优先修改 profile 副本或传入 `--character`、`--work`、`--scene`、`--include-reddit`。
 
 ## 输出格式
 
@@ -36,8 +40,8 @@
 
 ## 数据源路由规则
 
-- Fandom：角色资料、作品资料、世界观和结构化粉丝百科。
-- obcSpider：米游社官方角色语音、角色简介和 wav 链接。
+- Fandom：本项目当前作为主要/官方信息来源，用于角色资料、作品资料和世界观。
+- obcSpider：默认关闭；本阶段不实现真实米游社采集。
 - Crawlbase Reddit：公开 Reddit 论坛讨论、角色分析、任务解析和粉丝争议点。
 
 ## 缓存检查规则
@@ -55,10 +59,10 @@
 - 不处理登录态、私信、删除内容、验证码或访问控制绕过。
 - 不下载音频文件，只保存 wav URL 和文本。
 - 不把粉丝讨论当作正史。
-- 不把 Fandom 资料标记为官方正史。
+- Fandom 在本项目中可作为主要/官方信息来源，但仍需保留 source_url 和 source_type 以便追溯。
 
 ## 示例对话
 
 用户：我想写一个关于芙宁娜在现代 AU 中重新面对审判创伤的故事。
 
-skill：生成 keyword_plan，路由到 Fandom、obcSpider 和 Reddit，先检查缓存，再收集 raw、extracted_document、Source 和 Evidence Chunk。
+skill：根据 story profile 生成 keyword_plan，默认路由到 Fandom；如果需要论坛讨论则加入 Reddit，先检查缓存，再收集 raw、extracted_document、Source 和 Evidence Chunk。

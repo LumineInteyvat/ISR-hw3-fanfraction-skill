@@ -144,6 +144,96 @@ def test_keyword_plan_asks_when_character_unclear():
     assert "你要写哪个角色？" in plan["clarification_questions"]
 
 
+def test_story_profile_detects_zhongli_and_skips_obc_by_default():
+    profile_mod = load_module("profile", ".skills/story-info-collector/scripts/utils/profile.py")
+    cli = load_module("collect_story_info", ".skills/story-info-collector/scripts/collect_story_info.py")
+    profile = profile_mod.load_story_profile(ROOT / ".skills/story-info-collector/profiles/genshin.story-profile.yaml")
+
+    plan = cli.generate_keyword_plan("我想写钟离在现代 AU 中处理契约创伤", "zh", profile=profile, include_reddit=True)
+
+    assert plan["clarification_needed"] is False
+    assert plan["detected_characters"] == ["钟离"]
+    assert plan["detected_works"] == ["原神"]
+    assert "现代 AU" in plan["detected_scenes"]
+    assert plan["source_routes"] == ["fandom", "reddit"]
+    assert "obc" not in plan["source_routes"]
+
+
+def test_profile_cli_overrides_generate_zhongli_sources_without_obc(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    docs_root = tmp_path / "docs"
+    config_path.write_text(
+        f"""
+project:
+  default_language: zh
+  allow_english_search: true
+  docs_root: {docs_root}
+  default_profile: {ROOT}/.skills/story-info-collector/profiles/genshin.story-profile.yaml
+cache:
+  enabled: true
+  manifest_path: {docs_root}/manifests/source_manifest.json
+fandom:
+  enabled: true
+obc:
+  enabled: false
+reddit:
+  enabled: true
+  token_env: CRAWLBASE_TOKEN
+  max_posts_per_query: 20
+  sort: relevance
+  subreddits: [Genshin_Lore]
+storage:
+  categories:
+    character_information: {docs_root}/character-information
+    world_information: {docs_root}/world-information
+    plot_information: {docs_root}/plot-information
+    relationship_information: {docs_root}/relationship-information
+    voice_lines: {docs_root}/voice-lines
+    forum_analysis: {docs_root}/forum-analysis
+  raw_fandom: {docs_root}/raw/fandom
+  raw_obc: {docs_root}/raw/obc
+  raw_reddit: {docs_root}/raw/reddit
+  manifests: {docs_root}/manifests
+  sources: {docs_root}/sources
+  chunks: {docs_root}/chunks
+""",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS / "collect_story_info.py"),
+            "--request",
+            "我要写一个契约创伤故事",
+            "--config",
+            str(config_path),
+            "--profile",
+            str(ROOT / ".skills/story-info-collector/profiles/genshin.story-profile.yaml"),
+            "--character",
+            "钟离",
+            "--work",
+            "原神",
+            "--scene",
+            "现代AU",
+            "--include-reddit",
+            "--dry-run",
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    manifest = json.loads((docs_root / "manifests" / "source_manifest.json").read_text(encoding="utf-8"))
+
+    assert "新增 source 数量: 2" in result.stdout
+    assert {entry["source_type"] for entry in manifest["entries"]} == {"official_reference", "interpretive_fan_evidence"}
+    source_names = {entry["source_name"] for entry in manifest["entries"]}
+    assert any(name.startswith("FandomScraper") for name in source_names)
+    assert any(name.startswith("Crawlbase Reddit") for name in source_names)
+    assert not list((docs_root / "voice-lines").glob("*.md"))
+
+
 def test_cli_dry_run_generates_manifest_sources_chunks_and_cache(tmp_path):
     config_path = tmp_path / "config.yaml"
     docs_root = tmp_path / "docs"
