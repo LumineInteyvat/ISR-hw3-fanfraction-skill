@@ -1,0 +1,58 @@
+project:
+  default_language: zh
+  allow_english_search: true
+  docs_root: docs
+
+cache:
+  enabled: true
+  manifest_path: docs/manifests/source_manifest.json
+  refresh_days: 30
+  default_refresh: false
+
+fandom:
+  enabled: true
+  default_lang: en
+  attrs:
+    - age
+    - status
+    - images
+    - affiliation
+    - occupations
+    - personality
+    - appearance
+    - relationships
+    - story
+
+obc:
+  enabled: true
+  default_lang: zh
+  games:
+    genshin:
+      configuration_key: genshin_impact
+    hsr:
+      configuration_key: "honkai:_star_rail"
+
+reddit:
+  enabled: true
+  token_env: CRAWLBASE_TOKEN
+  max_posts_per_query: 20
+  sort: relevance
+  subreddits:
+    - Genshin_Lore
+    - Genshin_Impact
+    - HonkaiStarRail
+
+storage:
+  categories:
+    character_information: docs/character-information
+    world_information: docs/world-information
+    plot_information: docs/plot-information
+    relationship_information: docs/relationship-information
+    voice_lines: docs/voice-lines
+    forum_analysis: docs/forum-analysis
+  raw_fandom: docs/raw/fandom
+  raw_obc: docs/raw/obc
+  raw_reddit: docs/raw/reddit
+  manifests: docs/manifests
+  sources: docs/sources
+  chunks: docs/chunks

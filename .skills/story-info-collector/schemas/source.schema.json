@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["source_id", "source_type", "source_name", "source_url", "work", "character", "language", "query", "query_hash", "collected_at", "raw_path", "extracted_path", "chunk_paths", "metadata"],
+  "properties": {
+    "source_id": {"type": "string"},
+    "source_type": {"enum": ["primary_canon", "official_reference", "structured_fan_knowledge", "interpretive_fan_evidence", "unknown"]},
+    "source_name": {"type": "string"},
+    "source_url": {"type": "string"},
+    "work": {"type": "string"},
+    "character": {"type": "string"},
+    "language": {"type": "string"},
+    "query": {"type": "string"},
+    "query_hash": {"type": "string"},
+    "collected_at": {"type": "string"},
+    "raw_path": {"type": "string"},
+    "extracted_path": {"type": "string"},
+    "chunk_paths": {"type": "array", "items": {"type": "string"}},
+    "metadata": {"type": "object"}
+  }
+}

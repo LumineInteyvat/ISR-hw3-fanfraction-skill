@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["document_id", "source_type", "source_name", "source_url", "language", "character", "work", "category", "title", "text", "metadata", "collected_at"],
+  "properties": {
+    "document_id": {"type": "string"},
+    "source_type": {"type": "string"},
+    "source_name": {"type": "string"},
+    "source_url": {"type": "string"},
+    "language": {"type": "string"},
+    "character": {"type": "string"},
+    "work": {"type": "string"},
+    "category": {"type": "string"},
+    "title": {"type": "string"},
+    "text": {"type": "string"},
+    "metadata": {"type": "object"},
+    "collected_at": {"type": "string"}
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["original_request", "detected_characters", "detected_works", "detected_worlds", "detected_scenes", "search_keywords", "information_needs", "source_routes", "clarification_needed", "clarification_questions", "classified_keywords"],
+  "properties": {
+    "original_request": {"type": "string"},
+    "detected_characters": {"type": "array", "items": {"type": "string"}},
+    "detected_works": {"type": "array", "items": {"type": "string"}},
+    "detected_worlds": {"type": "array", "items": {"type": "string"}},
+    "detected_scenes": {"type": "array", "items": {"type": "string"}},
+    "search_keywords": {
+      "type": "object",
+      "required": ["zh", "en"],
+      "properties": {
+        "zh": {"type": "array", "items": {"type": "string"}},
+        "en": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "information_needs": {"type": "array", "items": {"type": "string"}},
+    "source_routes": {"type": "array", "items": {"enum": ["fandom", "obc", "reddit"]}},
+    "clarification_needed": {"type": "boolean"},
+    "clarification_questions": {"type": "array", "items": {"type": "string"}},
+    "classified_keywords": {"type": "object"}
+  }
+}

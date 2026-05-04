@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["entries"],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["manifest_key", "source_type", "source_name", "source_url", "query", "query_hash", "character", "work", "language", "collected_at", "raw_path", "extracted_path", "source_path", "chunk_paths", "status", "notes"],
+        "properties": {
+          "manifest_key": {"type": "string"},
+          "source_type": {"type": "string"},
+          "source_name": {"type": "string"},
+          "source_url": {"type": "string"},
+          "query": {"type": "string"},
+          "query_hash": {"type": "string"},
+          "character": {"type": "string"},
+          "work": {"type": "string"},
+          "language": {"type": "string"},
+          "collected_at": {"type": "string"},
+          "raw_path": {"type": "string"},
+          "extracted_path": {"type": "string"},
+          "source_path": {"type": "string"},
+          "chunk_paths": {"type": "array", "items": {"type": "string"}},
+          "status": {"enum": ["success", "skipped", "failed", "cached"]},
+          "notes": {"type": "string"}
+        }
+      }
+    }
+  }
+}

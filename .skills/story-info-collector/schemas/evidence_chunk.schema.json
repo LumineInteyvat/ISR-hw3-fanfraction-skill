@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["chunk_id", "source_id", "source_type", "source_name", "source_url", "work", "character", "language", "category", "chunk_index", "title", "text", "evidence_scope", "metadata"],
+  "properties": {
+    "chunk_id": {"type": "string"},
+    "source_id": {"type": "string"},
+    "source_type": {"type": "string"},
+    "source_name": {"type": "string"},
+    "source_url": {"type": "string"},
+    "work": {"type": "string"},
+    "character": {"type": "string"},
+    "language": {"type": "string"},
+    "category": {"type": "string"},
+    "chunk_index": {"type": "integer"},
+    "title": {"type": "string"},
+    "text": {"type": "string"},
+    "evidence_scope": {"enum": ["appearance", "personality", "relationship", "voice_line", "quest_context", "worldbuilding", "forum_interpretation", "unknown"]},
+    "metadata": {"type": "object"}
+  }
+}
