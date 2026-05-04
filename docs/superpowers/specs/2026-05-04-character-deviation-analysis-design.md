@@ -121,8 +121,8 @@ Add a minimum CLI entrypoint under the existing skill, for example:
 ```bash
 python3 .skills/story-info-collector/scripts/analyze_character_deviation.py \
   --profile .skills/story-info-collector/profiles/genshin.story-profile.yaml \
-  --input docs/.../evidence_chunks.jsonl \
-  --character "..." \
+  --input docs/story-info/genshin/evidence_chunks.jsonl \
+  --character "Example Character" \
   --scenario "modern_au" \
   --output /tmp/character_card.json
 ```
@@ -131,9 +131,9 @@ Standalone text input is also supported:
 
 ```bash
 python3 .skills/story-info-collector/scripts/analyze_character_deviation.py \
-  --source-text "..." \
+  --source-text "Example Character keeps promises even under pressure." \
   --source-channel canon \
-  --character "..." \
+  --character "Example Character" \
   --scenario "postwar" \
   --offline
 ```
