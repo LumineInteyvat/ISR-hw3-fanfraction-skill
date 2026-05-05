@@ -12,18 +12,22 @@ def _matches(value: str, aliases: list[str]) -> bool:
     return any(alias.lower() in lowered for alias in aliases)
 
 
-def find_character(request: str, profile: dict | None, explicit_character: str | None = None) -> str | None:
+def find_characters(request: str, profile: dict | None, explicit_character: str | None = None) -> list[str]:
     if explicit_character:
-        return explicit_character
+        return [part.strip() for part in explicit_character.replace("，", ",").split(",") if part.strip()]
     if not profile:
-        if "芙宁娜" in request or "Furina" in request:
-            return "芙宁娜"
-        return None
+        return ["芙宁娜"] if "芙宁娜" in request or "Furina" in request else []
+    matches = []
     for character in profile.get("characters", []):
         aliases = character.get("aliases", []) + [character.get("name", "")]
         if _matches(request, aliases):
-            return character["name"]
-    return None
+            matches.append(character["name"])
+    return matches
+
+
+def find_character(request: str, profile: dict | None, explicit_character: str | None = None) -> str | None:
+    characters = find_characters(request, profile, explicit_character)
+    return characters[0] if characters else None
 
 
 def find_work(request: str, profile: dict | None, character: str | None = None, explicit_work: str | None = None) -> str | None:
@@ -78,19 +82,21 @@ def routes_for(profile: dict | None, include_reddit: bool = False) -> list[str]:
     return routes
 
 
-def keywords_for(character: str, work: str, scenes: list[str], profile: dict | None, language: str) -> dict:
+def keywords_for(character: str | list[str], work: str, scenes: list[str], profile: dict | None, language: str) -> dict:
+    characters = character if isinstance(character, list) else ([character] if character else [])
     zh = []
     en = []
     if profile:
-        for entry in profile.get("characters", []):
-            if entry.get("name") == character:
-                zh.extend(entry.get("search_keywords", {}).get("zh", []))
-                en.extend(entry.get("search_keywords", {}).get("en", []))
-                break
+        for selected in characters:
+            for entry in profile.get("characters", []):
+                if entry.get("name") == selected:
+                    zh.extend(entry.get("search_keywords", {}).get("zh", []))
+                    en.extend(entry.get("search_keywords", {}).get("en", []))
+                    break
     if not zh:
-        zh = [character, "性格分析"] if character else []
+        zh = [*characters, "性格分析"] if characters else []
     if not en:
-        en = [character, "character analysis"] if character else []
+        en = [*characters, "character analysis"] if characters else []
     for scene in scenes:
         if scene not in zh:
             zh.append(scene)

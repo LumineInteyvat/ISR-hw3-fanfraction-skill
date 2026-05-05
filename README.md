@@ -49,14 +49,32 @@ docs/superpowers/
 
 `collect_story_info.py` 是现有采集入口。它使用 profile 驱动关键词、路线、source policy 和存储位置，阶段边界是“采集与归一化资料”，不在该阶段做角色推理或断言合并。
 
-示例：
+当前 Fandom 与 Reddit 公开资料采集都通过 Crawlbase adapter 执行：
+
+- Fandom 使用 `Crawlbase Fandom` 路线抓取角色 wiki 页面，并从 profile 中优先选择英文/ASCII alias 作为页面标题；
+- Reddit 使用 `Crawlbase Reddit` 路线抓取公开 subreddit 搜索结果；
+- 两条路线都会把 Crawlbase 返回体归一化为 JSON 安全结构，并把验证码页、空内容和 `original_status >= 400` 视为失败，而不是误报成功；
+- 采集成功后会写出 raw、extracted JSON/Markdown、source metadata、chunk 和 manifest，供后续 claim 抽取使用。
+
+真实采集示例：
 
 ```bash
 python3 .skills/story-info-collector/scripts/collect_story_info.py \
+  --request "我想要撰写一篇芙宁娜和那维莱特的校园现代风格文章。" \
+  --config .skills/story-info-collector/config.example.yaml \
   --profile .skills/story-info-collector/profiles/genshin.story-profile.yaml \
-  --character "Example Character" \
-  --work "Example Work" \
-  --scene "modern_au" \
+  --include-reddit \
+  --refresh
+```
+
+离线 dry-run 示例：
+
+```bash
+python3 .skills/story-info-collector/scripts/collect_story_info.py \
+  --request "我想要撰写一篇芙宁娜和那维莱特的校园现代风格文章。" \
+  --config .skills/story-info-collector/config.example.yaml \
+  --profile .skills/story-info-collector/profiles/genshin.story-profile.yaml \
+  --include-reddit \
   --dry-run
 ```
 
@@ -89,13 +107,27 @@ python3 .skills/story-info-collector/scripts/analyze_character_deviation.py \
   --output /tmp/character_card.json
 ```
 
+使用采集 chunk 生成图谱与角色卡示例：
+
+```bash
+python3 .skills/story-info-collector/scripts/analyze_character_deviation.py \
+  --input docs/chunks/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999__chunk-0.json \
+  --input docs/chunks/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484__chunk-0.json \
+  --input docs/chunks/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484__chunk-1.json \
+  --input docs/chunks/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484__chunk-2.json \
+  --character 芙宁娜 \
+  --scenario campus_modern \
+  --offline \
+  --output /tmp/furina_deviation_validation.json
+```
+
 真实 LLM 示例：
 
 ```bash
 python3 .skills/story-info-collector/scripts/analyze_character_deviation.py \
-  --input docs/story-info/genshin/evidence_chunks.jsonl \
-  --character "Example Character" \
-  --scenario postwar \
+  --input docs/chunks/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999__chunk-0.json \
+  --character 芙宁娜 \
+  --scenario campus_modern \
   --output /tmp/character_card.json
 ```
 
@@ -112,7 +144,7 @@ python3 .skills/story-info-collector/scripts/analyze_character_deviation.py \
 
 核心 Python 代码只依赖 schema 和 config，不直接依赖具体作品、角色、场景或 prompt 文本。
 
-## DeepSeek 与 Crawbase 环境变量 （可自行使用其它替换）
+## DeepSeek 与 Crawlbase 环境变量（可自行使用其它替换）
 
 本地运行真实 LLM 分析需要：
 
@@ -121,11 +153,14 @@ export DEEPSEEK_API_KEY="..."
 export FICTION_ASSISTANT_LLM_PROVIDER="deepseek"
 ```
 
-如果使用 Crawbase Reddit 采集，需要：
+如果使用 Crawlbase Fandom 或 Reddit 采集，需要至少配置一个 Crawlbase token：
 
 ```bash
 export CRAWLBASE_TOKEN="..."
+export CRAWLBASE_JS_TOKEN="..."
 ```
+
+`CRAWLBASE_JS_TOKEN` 是真实浏览器/JavaScript token；当它存在时，Fandom 与 Reddit adapter 会优先使用它，否则回退到 `CRAWLBASE_TOKEN`。
 
 ## 输出与审计
 
@@ -152,4 +187,18 @@ python3 -m pytest tests/test_story_info_collector.py tests/test_character_deviat
 
 ```bash
 python3 -m compileall .skills tests
+```
+
+本功能已用示例 prompt `我想要撰写一篇芙宁娜和那维莱特的校园现代风格文章。` 验证过以下链路：
+
+1. prompt 拆解识别 `芙宁娜`、`那维莱特`、`校园现代`；
+2. Crawlbase Fandom 与 Crawlbase Reddit 真实采集成功，输出 2 个 source 和 4 个 chunk；
+3. raw 输出使用 `CRAWLBASE_JS_TOKEN` / `javascript` 模式，结构化 `original_status` 为 200，且未命中验证码页；
+4. 离线角色偏离分析可从上述 chunk 生成 assertion、claim graph 和临时 character card，并保留 source trace。
+
+最近一次本地验证命令：
+
+```bash
+.venv/bin/python -m pytest tests/test_story_info_collector.py tests/test_character_deviation.py
+.venv/bin/python -m compileall .skills tests
 ```

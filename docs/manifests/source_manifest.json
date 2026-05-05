@@ -1,0 +1,46 @@
+{
+  "entries": [
+    {
+      "manifest_key": "芙宁娜|原神|fandom|zh|7242c3a68999",
+      "source_type": "official_reference",
+      "source_name": "Crawlbase Fandom",
+      "source_url": "https://genshin-impact.fandom.com/wiki/Furina",
+      "query": "芙宁娜 审判 创伤 性格分析 那维莱特 审判 枫丹 性格分析 校园现代 fandom",
+      "query_hash": "7242c3a68999",
+      "character": "芙宁娜",
+      "work": "原神",
+      "language": "zh",
+      "collected_at": "2026-05-05T03:31:32Z",
+      "raw_path": "docs/raw/fandom/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999.json",
+      "extracted_path": "docs/character-information/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999.json",
+      "source_path": "docs/sources/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999.json",
+      "chunk_paths": [
+        "docs/chunks/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999__chunk-0.json"
+      ],
+      "status": "success",
+      "notes": ""
+    },
+    {
+      "manifest_key": "芙宁娜|原神|reddit|zh|4b6461e82484",
+      "source_type": "interpretive_fan_evidence",
+      "source_name": "Crawlbase Reddit",
+      "source_url": "https://www.reddit.com/r/Genshin_Lore/search/?q=%E8%8A%99%E5%AE%81%E5%A8%9C%20%E5%AE%A1%E5%88%A4%20%E5%88%9B%E4%BC%A4%20%E6%80%A7%E6%A0%BC%E5%88%86%E6%9E%90%20%E9%82%A3%E7%BB%B4%E8%8E%B1%E7%89%B9%20%E5%AE%A1%E5%88%A4%20%E6%9E%AB%E4%B8%B9%20%E6%80%A7%E6%A0%BC%E5%88%86%E6%9E%90%20%E6%A0%A1%E5%9B%AD%E7%8E%B0%E4%BB%A3%20reddit&restrict_sr=1&sort=relevance",
+      "query": "芙宁娜 审判 创伤 性格分析 那维莱特 审判 枫丹 性格分析 校园现代 reddit",
+      "query_hash": "4b6461e82484",
+      "character": "芙宁娜",
+      "work": "原神",
+      "language": "zh",
+      "collected_at": "2026-05-05T03:33:12Z",
+      "raw_path": "docs/raw/reddit/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484.json",
+      "extracted_path": "docs/forum-analysis/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484.json",
+      "source_path": "docs/sources/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484.json",
+      "chunk_paths": [
+        "docs/chunks/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484__chunk-0.json",
+        "docs/chunks/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484__chunk-1.json",
+        "docs/chunks/yuan-shen__fu-zhu-na__forum-analysis__reddit__4b6461e82484__chunk-2.json"
+      ],
+      "status": "success",
+      "notes": ""
+    }
+  ]
+}

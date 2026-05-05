@@ -9,18 +9,19 @@ CURRENT = Path(__file__).resolve().parent
 sys.path.insert(0, str(CURRENT))
 
 from adapters.crawlbase_reddit_adapter import collect_reddit
+from adapters.fandom_adapter import collect_fandom
 from adapters.obc_spider_adapter import collect_obc
 from utils.cache import build_base_filename, is_cache_hit, stable_query_hash
 from utils.manifest import find_cached_entry, load_manifest, make_manifest_key, save_manifest, upsert_entry
-from utils.profile import find_character, find_scenes, find_work, keywords_for, load_story_profile, routes_for, source_type_for, worlds_for
+from utils.profile import find_character, find_characters, find_scenes, find_work, keywords_for, load_story_profile, routes_for, source_type_for, worlds_for
 from utils.text_extract import build_source, chunk_document, extract_document, write_chunks, write_json, write_markdown, write_source
 
 
 def generate_keyword_plan(request: str, language: str = "zh", profile: dict | None = None, explicit_character: str | None = None, explicit_work: str | None = None, explicit_scene: str | None = None, include_reddit: bool = False, exclusions: list[str] | None = None) -> dict:
-    character = find_character(request, profile, explicit_character)
+    characters = find_characters(request, profile, explicit_character)
+    character = characters[0] if characters else None
     work = find_work(request, profile, character, explicit_work)
     scenes = find_scenes(request, profile, explicit_scene)
-    characters = [character] if character else []
     works = [work] if work else []
     questions = []
     if not characters:
@@ -29,7 +30,7 @@ def generate_keyword_plan(request: str, language: str = "zh", profile: dict | No
         questions.append("这个角色来自哪个作品/世界观？")
     if not scenes:
         questions.append("你希望分析正史、AU、恋爱线、战后、黑化、任务后续，还是其它场景？")
-    search_keywords = keywords_for(character or "", work or "", scenes, profile, language)
+    search_keywords = keywords_for(characters, work or "", scenes, profile, language)
     source_routes = routes_for(profile, include_reddit) if characters and works else []
     return {
         "original_request": request,
@@ -69,18 +70,29 @@ def ensure_dirs(config: dict) -> None:
 def _raw_for_route(route: str, config: dict, character: str, work: str, language: str, query: str, dry_run: bool) -> tuple[dict, str]:
     storage = config["storage"]
     if route == "fandom":
-        raw = {
-            "status": "success",
-            "source_name": "FandomScraper dry-run" if dry_run else "FandomScraper",
-            "source_url": f"https://genshin-impact.fandom.com/wiki/{character}",
-            "title": character,
-            "sections": {
-                "appearance": f"{character} 的外观资料示例。",
-                "personality": f"{character} 在公开场合表现戏剧化，同时与审判创伤相关的心理主题值得收集。",
-                "relationships": f"{character} 与枫丹角色和民众存在复杂关系。",
-                "story": f"{character} 的剧情经历与审判、身份和责任相关。",
-            },
-        }
+        if dry_run:
+            raw = {
+                "status": "success",
+                "source_name": "Crawlbase Fandom dry-run",
+                "source_url": f"https://genshin-impact.fandom.com/wiki/{character}",
+                "title": character,
+                "sections": {
+                    "appearance": f"{character} 的外观资料示例。",
+                    "personality": f"{character} 在公开场合表现戏剧化，同时与审判创伤相关的心理主题值得收集。",
+                    "relationships": f"{character} 与枫丹角色和民众存在复杂关系。",
+                    "story": f"{character} 的剧情经历与审判、身份和责任相关。",
+                },
+            }
+        else:
+            wiki_name = "genshin-impact"
+            page_title = None
+            for work_entry in config.get("profile", {}).get("works", []):
+                if work_entry.get("name") == work:
+                    wiki_name = work_entry.get("wiki_name", wiki_name)
+            for character_entry in config.get("profile", {}).get("characters", []):
+                if character_entry.get("name") == character:
+                    page_title = next((alias for alias in character_entry.get("aliases", []) if str(alias).isascii()), None)
+            raw = collect_fandom(wiki_name, character, language, page_title=page_title)
         return raw, storage["raw_fandom"]
     if route == "obc":
         return collect_obc(work, language, [character], storage["raw_obc"], dry_run), storage["raw_obc"]
@@ -89,7 +101,7 @@ def _raw_for_route(route: str, config: dict, character: str, work: str, language
 
 def _context_for_route(route: str, character: str, work: str, language: str, query: str, query_hash: str, raw_path: str, profile: dict | None = None) -> dict:
     mapping = {
-        "fandom": (source_type_for("fandom", profile), "FandomScraper", "character-information"),
+        "fandom": (source_type_for("fandom", profile), "Crawlbase Fandom", "character-information"),
         "obc": (source_type_for("obc", profile), "obcSpider / 米游社", "voice-lines"),
         "reddit": (source_type_for("reddit", profile), "Crawlbase Reddit", "forum-analysis"),
     }
@@ -114,6 +126,8 @@ def collect(request: str, config: dict, dry_run: bool = False, language_override
     language = language_override or config.get("project", {}).get("default_language", "zh")
     selected_profile_path = profile_path or config.get("project", {}).get("default_profile")
     profile = load_story_profile(selected_profile_path) if selected_profile_path else None
+    if profile:
+        config["profile"] = profile
     keyword_plan = generate_keyword_plan(request, language, profile, explicit_character, explicit_work, explicit_scene, include_reddit, exclusions)
     if keyword_plan["clarification_needed"]:
         print("需要补充信息：")

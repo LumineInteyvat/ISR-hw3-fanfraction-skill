@@ -46,7 +46,7 @@ def extract_assertions(sources: list[SourceDocument], character: str, scenario: 
                 "text": source.text,
             },
         )
-        for index, raw in enumerate(result.get("assertions", []), start=1):
+        for index, raw in enumerate(_raw_assertions(result), start=1):
             assertions.append(_assertion_from_raw(raw, f"{source.source_id}:{index}", character, source))
     return assertions
 
@@ -137,6 +137,17 @@ def run_pipeline(sources: list[SourceDocument], character: str, scenario: str, c
         "recommendations": [recommendation.to_dict() for recommendation in recommendations],
         "character_card": card.to_dict(),
     }
+
+
+def _raw_assertions(result: Any) -> list[dict[str, Any]]:
+    if isinstance(result, list):
+        return [item for item in result if isinstance(item, dict)]
+    if not isinstance(result, dict):
+        return []
+    assertions = result.get("assertions", [])
+    if isinstance(assertions, list):
+        return [item for item in assertions if isinstance(item, dict)]
+    return []
 
 
 def _assertion_from_raw(raw: dict[str, Any], fallback_id: str, character: str, source: SourceDocument) -> Assertion:

@@ -1,0 +1,23 @@
+{
+  "source_id": "src_4d2e77c993abf91e",
+  "source_type": "official_reference",
+  "source_name": "Crawlbase Fandom",
+  "source_url": "https://genshin-impact.fandom.com/wiki/Furina",
+  "work": "原神",
+  "character": "芙宁娜",
+  "language": "zh",
+  "query": "芙宁娜 审判 创伤 性格分析 那维莱特 审判 枫丹 性格分析 校园现代 fandom",
+  "query_hash": "7242c3a68999",
+  "collected_at": "2026-05-05T03:31:32Z",
+  "raw_path": "docs/raw/fandom/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999.json",
+  "extracted_path": "docs/character-information/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999.json",
+  "chunk_paths": [
+    "docs/chunks/yuan-shen__fu-zhu-na__character-information__fandom__7242c3a68999__chunk-0.json"
+  ],
+  "metadata": {
+    "adapter": "fandom",
+    "category": "character-information",
+    "status": "success",
+    "notes": ""
+  }
+}

@@ -63,6 +63,25 @@ def test_offline_llm_extracts_structured_assertions_with_source_trace():
     assert result["assertions"][0]["claim"] == "Example trusts Ally."
 
 
+def test_extract_assertions_accepts_llm_list_response():
+    config = load_character_deviation_config(CONFIG_DIR)
+
+    class ListLLMClient:
+        def complete_json(self, task, prompt, schema_hint, metadata):
+            return [{"claim": "Example performs confidence under pressure.", "source_id": metadata["source_id"]}]
+
+    assertions = pipeline.extract_assertions(
+        [pipeline.SourceDocument(source_id="s1", source_type="canon", source_channel="canon", text="Example performs confidence under pressure.")],
+        "Example",
+        "modern_au",
+        config,
+        ListLLMClient(),
+    )
+
+    assert assertions[0].claim == "Example performs confidence under pressure."
+    assert assertions[0].source_trace.source_id == "s1"
+
+
 def test_multiple_sources_are_not_merged_in_claim_graph():
     assertions = [
         make_assertion("a1", "s1", "Example trusts Ally"),

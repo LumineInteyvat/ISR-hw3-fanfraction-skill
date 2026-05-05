@@ -9,7 +9,34 @@ def build_reddit_search_url(subreddit: str, query: str, sort: str = "relevance")
     return f"https://www.reddit.com/r/{subreddit}/search/?q={quote(query)}&restrict_sr=1&sort={sort}"
 
 
-def collect_reddit(query: str, subreddits: list[str], output_dir, token_env: str = "CRAWLBASE_TOKEN", dry_run: bool = False, sort: str = "relevance", max_posts_per_query: int = 20) -> dict:
+def _json_safe(value):
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    if isinstance(value, dict):
+        return {str(_json_safe(key)): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+def _contains_verification_page(value) -> bool:
+    if isinstance(value, dict):
+        return any(_contains_verification_page(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_verification_page(item) for item in value)
+    text = str(value).lower()
+    return "please wait for verification" in text or "verification" in text and "reddit" in text
+
+
+def _select_token(token_env: str = "CRAWLBASE_TOKEN", js_token_env: str = "CRAWLBASE_JS_TOKEN") -> tuple[str | None, str, str]:
+    js_token = os.environ.get(js_token_env)
+    if js_token:
+        return js_token, js_token_env, "javascript"
+    token = os.environ.get(token_env)
+    return token, token_env, "normal"
+
+
+def collect_reddit(query: str, subreddits: list[str], output_dir, token_env: str = "CRAWLBASE_TOKEN", dry_run: bool = False, sort: str = "relevance", max_posts_per_query: int = 20, js_token_env: str = "CRAWLBASE_JS_TOKEN") -> dict:
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     urls = [build_reddit_search_url(subreddit, query, sort) for subreddit in subreddits]
     if dry_run:
@@ -34,16 +61,41 @@ def collect_reddit(query: str, subreddits: list[str], output_dir, token_env: str
                 }
             ],
         }
-    token = os.environ.get(token_env)
+    token, selected_token_env, crawlbase_mode = _select_token(token_env, js_token_env)
     if not token:
-        return {"status": "skipped", "source_name": "Crawlbase Reddit", "source_url": urls[0] if urls else "", "notes": f"缺少 {token_env}，跳过 Reddit。"}
+        return {"status": "skipped", "source_name": "Crawlbase Reddit", "source_url": urls[0] if urls else "", "notes": f"缺少 {token_env} 或 {js_token_env}，跳过 Reddit。"}
     try:
         from crawlbase import CrawlingAPI
     except ImportError:
         return {"status": "failed", "source_name": "Crawlbase Reddit", "source_url": urls[0] if urls else "", "notes": "缺少 crawlbase 包，请安装后重试。"}
     api = CrawlingAPI({"token": token})
-    responses = [api.get(url, options={"autoparse": "true"}) for url in urls[:max_posts_per_query]]
-    return {"status": "success", "source_name": "Crawlbase Reddit", "source_url": urls[0] if urls else "", "responses": responses}
+    responses = [_json_safe(api.get(url, options={"autoparse": "true"})) for url in urls[:max_posts_per_query]]
+    if any(_contains_verification_page(response) for response in responses):
+        return {
+            "status": "failed",
+            "source_name": "Crawlbase Reddit",
+            "source_url": urls[0] if urls else "",
+            "title": f"Reddit discussion: {query}",
+            "notes": "Reddit returned a verification page through Crawlbase.",
+            "token_env": selected_token_env,
+            "crawlbase_mode": crawlbase_mode,
+            "responses": responses,
+        }
+    snippets = []
+    for response in responses:
+        body = response.get("body") if isinstance(response, dict) else ""
+        if body:
+            snippets.append(str(body)[:4000])
+    return {
+        "status": "success",
+        "source_name": "Crawlbase Reddit",
+        "source_url": urls[0] if urls else "",
+        "title": f"Reddit discussion: {query}",
+        "sections": {"forum_discussion": "\n\n".join(snippets) or f"Crawlbase Reddit responses for {query}"},
+        "token_env": selected_token_env,
+        "crawlbase_mode": crawlbase_mode,
+        "responses": responses,
+    }
 
 
 def main() -> None:

@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / ".skills" / "story-info-collector" / "scripts"
@@ -110,6 +111,7 @@ def test_obc_mappings_are_correct():
 def test_reddit_without_token_is_skipped(monkeypatch, tmp_path):
     reddit = load_module("reddit", ".skills/story-info-collector/scripts/adapters/crawlbase_reddit_adapter.py")
     monkeypatch.delenv("CRAWLBASE_TOKEN", raising=False)
+    monkeypatch.delenv("CRAWLBASE_JS_TOKEN", raising=False)
 
     result = reddit.collect_reddit(
         query="Furina personality analysis",
@@ -123,6 +125,162 @@ def test_reddit_without_token_is_skipped(monkeypatch, tmp_path):
     assert "CRAWLBASE_TOKEN" in result["notes"]
 
 
+def test_reddit_crawlbase_response_is_json_serializable(monkeypatch, tmp_path):
+    reddit = load_module("reddit", ".skills/story-info-collector/scripts/adapters/crawlbase_reddit_adapter.py")
+    monkeypatch.setenv("CRAWLBASE_TOKEN", "test-token")
+    monkeypatch.setenv("CRAWLBASE_JS_TOKEN", "test-js-token")
+
+    class FakeCrawlingAPI:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get(self, url, options=None):
+            return {"status_code": 200, "body": b"reddit html", "headers": {b"content-type": b"text/html"}}
+
+    fake_module = Mock(CrawlingAPI=FakeCrawlingAPI)
+    with patch.dict(sys.modules, {"crawlbase": fake_module}):
+        result = reddit.collect_reddit("Furina analysis", ["Genshin_Lore"], tmp_path, dry_run=False)
+
+    json.dumps(result)
+    assert result["responses"][0]["body"] == "reddit html"
+    assert result["sections"]["forum_discussion"]
+    assert result["token_env"] == "CRAWLBASE_JS_TOKEN"
+    assert result["crawlbase_mode"] == "javascript"
+
+
+def test_fandom_uses_crawlbase_js_token(monkeypatch, tmp_path):
+    fandom = load_module("fandom", ".skills/story-info-collector/scripts/adapters/fandom_adapter.py")
+    monkeypatch.setenv("CRAWLBASE_TOKEN", "test-token")
+    monkeypatch.setenv("CRAWLBASE_JS_TOKEN", "test-js-token")
+
+    class FakeCrawlingAPI:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get(self, url, options=None):
+            return {"status_code": 200, "body": {"title": "Furina", "content": "Furina performs confidence before Fontaine."}}
+
+    with patch.dict(sys.modules, {"crawlbase": Mock(CrawlingAPI=FakeCrawlingAPI)}):
+        result = fandom.collect_fandom("genshin-impact", "Furina")
+
+    assert result["status"] == "success"
+    assert result["source_name"] == "Crawlbase Fandom"
+    assert result["token_env"] == "CRAWLBASE_JS_TOKEN"
+    assert result["crawlbase_mode"] == "javascript"
+    assert result["source_url"] == "https://genshin-impact.fandom.com/wiki/Furina"
+    assert "Furina performs confidence" in result["sections"]["page"]
+
+
+def test_fandom_accepts_page_title_override(monkeypatch):
+    fandom = load_module("fandom", ".skills/story-info-collector/scripts/adapters/fandom_adapter.py")
+    monkeypatch.setenv("CRAWLBASE_JS_TOKEN", "test-js-token")
+
+    class FakeCrawlingAPI:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get(self, url, options=None):
+            assert url == "https://genshin-impact.fandom.com/wiki/Furina"
+            return {"status_code": 200, "body": {"title": "Furina", "content": "Furina performs confidence."}}
+
+    with patch.dict(sys.modules, {"crawlbase": Mock(CrawlingAPI=FakeCrawlingAPI)}):
+        result = fandom.collect_fandom("genshin-impact", "芙宁娜", page_title="Furina")
+
+    assert result["status"] == "success"
+    assert result["source_url"] == "https://genshin-impact.fandom.com/wiki/Furina"
+
+
+def test_raw_for_fandom_uses_ascii_profile_alias(monkeypatch, tmp_path):
+    cli = load_module("collect_story_info", ".skills/story-info-collector/scripts/collect_story_info.py")
+    captured = {}
+
+    def fake_collect_fandom(wiki_name, character, language, page_title=None):
+        captured["wiki_name"] = wiki_name
+        captured["character"] = character
+        captured["page_title"] = page_title
+        return {"status": "success", "source_name": "Crawlbase Fandom", "source_url": "https://genshin-impact.fandom.com/wiki/Furina", "title": "Furina", "sections": {"page": "Furina text"}}
+
+    monkeypatch.setattr(cli, "collect_fandom", fake_collect_fandom)
+    config = {"storage": {"raw_fandom": str(tmp_path)}, "profile": {"works": [{"name": "原神", "wiki_name": "genshin-impact"}], "characters": [{"name": "芙宁娜", "aliases": ["芙宁娜", "Furina"]}]}}
+
+    cli._raw_for_route("fandom", config, "芙宁娜", "原神", "zh", "query", False)
+
+    assert captured == {"wiki_name": "genshin-impact", "character": "芙宁娜", "page_title": "Furina"}
+
+
+def test_reddit_verification_page_is_failed(monkeypatch, tmp_path):
+    reddit = load_module("reddit", ".skills/story-info-collector/scripts/adapters/crawlbase_reddit_adapter.py")
+    monkeypatch.setenv("CRAWLBASE_TOKEN", "test-token")
+
+    class FakeCrawlingAPI:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get(self, url, options=None):
+            return {"status_code": 200, "body": {"title": "Reddit - Please wait for verification", "content": ""}}
+
+    with patch.dict(sys.modules, {"crawlbase": Mock(CrawlingAPI=FakeCrawlingAPI)}):
+        result = reddit.collect_reddit("Furina analysis", ["Genshin_Lore"], tmp_path, dry_run=False)
+
+    assert result["status"] == "failed"
+    assert "verification" in result["notes"]
+
+
+def test_fandom_transport_error_is_failed(monkeypatch):
+    fandom = load_module("fandom", ".skills/story-info-collector/scripts/adapters/fandom_adapter.py")
+    monkeypatch.setenv("CRAWLBASE_TOKEN", "test-token")
+
+    class FakeCrawlingAPI:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get(self, url, options=None):
+            raise RuntimeError("blocked")
+
+    with patch.dict(sys.modules, {"crawlbase": Mock(CrawlingAPI=FakeCrawlingAPI)}):
+        result = fandom.collect_fandom("genshin-impact", "Furina")
+
+    assert result["status"] == "failed"
+    assert result["source_name"] == "Crawlbase Fandom"
+    assert "blocked" in result["notes"]
+
+
+def test_fandom_original_404_is_failed(monkeypatch):
+    fandom = load_module("fandom", ".skills/story-info-collector/scripts/adapters/fandom_adapter.py")
+    monkeypatch.setenv("CRAWLBASE_JS_TOKEN", "test-js-token")
+
+    class FakeCrawlingAPI:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get(self, url, options=None):
+            return {"status_code": 200, "body": {"original_status": 404, "body": {"title": "Furina", "content": "not found page"}}}
+
+    with patch.dict(sys.modules, {"crawlbase": Mock(CrawlingAPI=FakeCrawlingAPI)}):
+        result = fandom.collect_fandom("genshin-impact", "Furina")
+
+    assert result["status"] == "failed"
+    assert "404" in result["notes"]
+
+
+def test_fandom_original_404_in_string_body_is_failed(monkeypatch):
+    fandom = load_module("fandom", ".skills/story-info-collector/scripts/adapters/fandom_adapter.py")
+    monkeypatch.setenv("CRAWLBASE_JS_TOKEN", "test-js-token")
+
+    class FakeCrawlingAPI:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def get(self, url, options=None):
+            return {"status_code": 200, "body": '{"original_status":404,"body":{"title":"Furina","content":"not found page"}}'}
+
+    with patch.dict(sys.modules, {"crawlbase": Mock(CrawlingAPI=FakeCrawlingAPI)}):
+        result = fandom.collect_fandom("genshin-impact", "Furina")
+
+    assert result["status"] == "failed"
+    assert "404" in result["notes"]
+
+
 def test_keyword_plan_detects_furina_example():
     cli = load_module("collect_story_info", ".skills/story-info-collector/scripts/collect_story_info.py")
 
@@ -133,6 +291,22 @@ def test_keyword_plan_detects_furina_example():
     assert plan["detected_works"] == ["原神"]
     assert "reddit" in plan["source_routes"]
     assert "personality" in plan["classified_keywords"]
+
+
+def test_keyword_plan_detects_school_modern_furina_neuvillette_prompt():
+    profile_mod = load_module("profile", ".skills/story-info-collector/scripts/utils/profile.py")
+    cli = load_module("collect_story_info", ".skills/story-info-collector/scripts/collect_story_info.py")
+    profile = profile_mod.load_story_profile(ROOT / ".skills/story-info-collector/profiles/genshin.story-profile.yaml")
+
+    plan = cli.generate_keyword_plan("我想要撰写一篇芙宁娜和那维莱特的校园现代风格文章。", "zh", profile=profile, include_reddit=True)
+
+    assert plan["clarification_needed"] is False
+    assert plan["detected_characters"] == ["芙宁娜", "那维莱特"]
+    assert plan["detected_works"] == ["原神"]
+    assert "校园现代" in plan["detected_scenes"]
+    assert "那维莱特" in plan["search_keywords"]["zh"]
+    assert "Neuvillette" in plan["search_keywords"]["en"]
+    assert plan["source_routes"] == ["fandom", "reddit"]
 
 
 def test_keyword_plan_asks_when_character_unclear():
@@ -229,7 +403,7 @@ storage:
     assert "新增 source 数量: 2" in result.stdout
     assert {entry["source_type"] for entry in manifest["entries"]} == {"official_reference", "interpretive_fan_evidence"}
     source_names = {entry["source_name"] for entry in manifest["entries"]}
-    assert any(name.startswith("FandomScraper") for name in source_names)
+    assert any(name.startswith("Crawlbase Fandom") for name in source_names)
     assert any(name.startswith("Crawlbase Reddit") for name in source_names)
     assert not list((docs_root / "voice-lines").glob("*.md"))
 

@@ -13,6 +13,12 @@ characters:
     search_keywords:
       zh: [芙宁娜, 审判, 创伤, 性格分析]
       en: [Furina, trial, trauma, character analysis]
+  - name: 那维莱特
+    work: 原神
+    aliases: [那维莱特, Neuvillette]
+    search_keywords:
+      zh: [那维莱特, 审判, 枫丹, 性格分析]
+      en: [Neuvillette, trial, Fontaine, character analysis]
   - name: 钟离
     work: 原神
     aliases: [钟离, Zhongli, Morax, 摩拉克斯, 岩王帝君]
@@ -28,6 +34,8 @@ characters:
 scenes:
   - name: 现代 AU
     aliases: [现代 AU, 现代AU, modern AU]
+  - name: 校园现代
+    aliases: [校园现代, 校园现代风格, 校园现代风格文章, school modern AU, campus modern AU]
   - name: 审判创伤
     aliases: [审判创伤, 审判, trial trauma]
   - name: 契约创伤
